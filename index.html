@@ -193,6 +193,7 @@ td.n{font-variant-numeric:tabular-nums;font-family:var(--font-d)}
 .prow button{padding:6px 12px;border-radius:9px}
 .archive #phaseSeg,.archive #openSeg,.archive #pauseBtn,.archive #endBtn,.archive #tOnline{display:none!important}
 .openby{border:1px solid var(--line);border-radius:12px;padding:8px 12px}.openby summary{cursor:pointer;font-size:14px}.openby label{margin-top:8px}.openby button{width:100%;margin-top:8px}
+.byline{display:inline-block;margin:6px 0 4px;background:rgba(243,178,58,.14);border:1px solid rgba(243,178,58,.45);color:#f3d08a;border-radius:999px;padding:5px 14px;font-size:15px}.byline b{color:#f3b23a}.credit{text-align:center;opacity:.85}
 .iptag{display:block;font-size:11px;color:var(--muted);font-weight:normal;margin-top:2px}
 .qrov{position:fixed;inset:0;z-index:70;background:rgba(9,22,37,.96);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px));overflow:auto}
 .qrbox{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;width:min(100%,460px)}
@@ -283,6 +284,7 @@ select{background:#0f2843;border:1px solid var(--line);border-radius:10px;paddin
     <header class="brand">
       <div class="eyebrow">لعبة رياضيات · ثالث متوسط</div>
       <h1>مهندس الطرق في مريفق</h1>
+      <div class="byline">إعداد المعلمة: <b>أ. بدرية الشمري</b></div>
       <p class="lead">ابني طرق الحي على مستوى إحداثي ثلاثي الأبعاد: كل معادلة صحيحة تتحول إلى طريق تمشي عليه السيارات.</p>
     </header>
     <div class="lgrid">
@@ -322,6 +324,7 @@ select{background:#0f2843;border:1px solid var(--line);border-radius:10px;paddin
       </div>
     </div>
     <p class="note">لا يحتاج أي حساب. الطالبة تكتب اسمها الأول فقط.</p>
+    <p class="note credit">© ١٤٤٨هـ · لعبة «مهندس الطرق في مريفق» من تصميم وإعداد أ. بدرية الشمري · رياضيات ثالث متوسط</p>
   </div>
 </div>
 
@@ -394,6 +397,7 @@ select{background:#0f2843;border:1px solid var(--line);border-radius:10px;paddin
       </div>
       <table><thead><tr><th>المهمة</th><th>أخطاء</th><th>تلميحات</th><th>النقاط</th></tr></thead><tbody id="resRows"></tbody></table>
       <button class="primary" id="againBtn">جولة جديدة بأرقام مختلفة</button>
+      <p class="note credit" style="text-align:center;margin:6px 0 0">من تصميم المعلمة أ. بدرية الشمري</p>
       <button class="ghost" id="nextStuBtn" hidden>الطالبة التالية على هذا الجهاز</button>
     </div>
   </aside>

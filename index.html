@@ -194,6 +194,8 @@ td.n{font-variant-numeric:tabular-nums;font-family:var(--font-d)}
 .archive #phaseSeg,.archive #openSeg,.archive #pauseBtn,.archive #endBtn,.archive #tOnline{display:none!important}
 .openby{border:1px solid var(--line);border-radius:12px;padding:8px 12px}.openby summary{cursor:pointer;font-size:14px}.openby label{margin-top:8px}.openby button{width:100%;margin-top:8px}
 .byline{display:inline-block;margin:6px 0 4px;background:rgba(243,178,58,.14);border:1px solid rgba(243,178,58,.45);color:#f3d08a;border-radius:999px;padding:5px 14px;font-size:15px}.byline b{color:#f3b23a}.credit{text-align:center;opacity:.85}
+.codebox.tkbox{background:transparent;border:1px dashed var(--line);color:var(--muted);padding:6px 12px;display:flex;align-items:center;gap:8px}.codebox.tkbox span{font-size:12px}.codebox.tkbox b{font-size:16px;letter-spacing:2px;color:var(--text)}.tkbox button{padding:3px 10px;font-size:12px}
+.ownlock{display:flex;flex-direction:column;gap:10px}
 .iptag{display:block;font-size:11px;color:var(--muted);font-weight:normal;margin-top:2px}
 .qrov{position:fixed;inset:0;z-index:70;background:rgba(9,22,37,.96);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px));overflow:auto}
 .qrbox{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;width:min(100%,460px)}
@@ -307,7 +309,13 @@ select{background:#0f2843;border:1px solid var(--line);border-radius:10px;paddin
       <div class="card">
         <span class="concept">للمعلمة</span>
         <h2>لوحة المعلمة</h2>
-        <p class="story">أنشئي فصلاً، واعرضي الرمز على السبورة. تتابعين تقدم كل طالبة لحظياً، والأخطاء الشائعة تتجمع تلقائياً، ويمكنك إخفاء الأسماء عند العرض.</p>
+        <p class="story">خاصة بمعلمة المادة. تتابعين تقدم كل طالبة لحظياً، والأخطاء الشائعة تتجمع تلقائياً.</p>
+        <div id="ownLock" class="ownlock">
+          <label for="ownCode">رمزك الشخصي<input id="ownCode" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20" style="-webkit-text-security:disc"></label>
+          <button class="primary" id="ownBtn" type="button">دخول المعلمة</button>
+          <div class="fb" id="ownMsg" role="status"></div>
+        </div>
+        <div id="ownPanel" hidden>
         <button class="primary" id="newClassBtn">إنشاء فصل جديد</button>
         <button class="ghost" id="resumeBtn" hidden></button>
         <details class="openby"><summary>فتح فصل من جهاز ثاني برمزه</summary>
@@ -320,6 +328,7 @@ select{background:#0f2843;border:1px solid var(--line);border-radius:10px;paddin
           <h3>الحصص السابقة</h3>
           <div id="pastList" class="past"></div>
           <p class="note">محفوظة في سفاري على هذا الجهاز. للحفظ الدائم صدّري كل حصة Excel أو PDF.</p>
+        </div>
         </div>
       </div>
     </div>
@@ -466,6 +475,7 @@ select{background:#0f2843;border:1px solid var(--line);border-radius:10px;paddin
       <div class="pill" id="archTag" hidden></div>
       <div class="pill" id="tOnline"><span class="dot" id="tDot"></span>المتصلات: <b id="tCount">٠</b></div>
       <div class="codebox"><span>رمز الفصل</span><b id="tCode"></b></div>
+      <div class="codebox tkbox" id="tkBox" hidden><span>رمز المعلمة</span><b id="tKey">••••••</b><button class="ghost" id="tKeyBtn" type="button">إظهار</button></div>
     </div>
   </header>
   <div class="tbar">
@@ -835,7 +845,7 @@ $('#jCode').addEventListener('input',e=>{e.target.value=toLatin(e.target.value).
 /* ---------- Class roster: shared helpers ---------- */
 const ROS_KEY='mrf-roster';
 let ARCH_ROSTER=null;
-const DEFAULT_ROSTER=['شيخة','منيرة','نورة','غند','رهف','حنين','ريم','أبراج','لطيفة','منيفة','أمل','فاطمة','أفراح','رغد','داليا','مرام'];
+const DEFAULT_ROSTER=[];
 const cleanName=x=>String(x).replace(/\s+/g,' ').trim().slice(0,20);
 function cleanRoster(a){const out=[];(Array.isArray(a)?a:[]).forEach(x=>{if(typeof x!=='string')return;const n=cleanName(x);if(n&&!out.includes(n)&&out.length<60)out.push(n)});return out}
 const TEAMS=[{n:'الطرق',c:'#f3b23a',h:0xf3b23a},{n:'التعليم',c:'#3fa7d6',h:0x3fa7d6},{n:'المعايير',c:'#9b7bd8',h:0x9b7bd8},{n:'الخدمات',c:'#ef6b5b',h:0xef6b5b}];
@@ -846,7 +856,7 @@ function parseLine(line){
   return{n,t};
 }
 function cleanLines(a){const out=[],seen=new Set();(Array.isArray(a)?a:[]).forEach(x=>{if(typeof x!=='string')return;const p=parseLine(x);if(!p.n||seen.has(p.n)||out.length>=60)return;seen.add(p.n);out.push(p.t>=0?p.n+' - '+TEAMS[p.t].n:p.n)});return out}
-const DEFAULT_LINES=['أفراح - الطرق','غند - الطرق','حنين - الطرق','فاطمة - الطرق','داليا - التعليم','لطيفة - التعليم','أبراج - التعليم','ريم - التعليم','شيخة - المعايير','رغد - المعايير','منيرة - المعايير','أمل - المعايير','نورة - الخدمات','مرام - الخدمات','منيفة - الخدمات','رهف - الخدمات'];
+const DEFAULT_LINES=[];
 function getRosterLines(){
   if(Array.isArray(ARCH_ROSTER))return cleanLines(ARCH_ROSTER);
   try{const a=JSON.parse(store.get(ROS_KEY)||'null');if(Array.isArray(a))return cleanLines(a)}catch(e){}
@@ -1475,11 +1485,23 @@ const savedCode=store.get('mrf-teacher-code');
 if(savedCode){const b=$('#resumeBtn');b.hidden=false;b.textContent='استئناف الفصل '+ar(savedCode)}
 $('#newClassBtn').onclick=()=>teacherConnect(null);
 $('#resumeBtn').onclick=()=>teacherConnect(savedCode);
+/* Owner gate: teacher tools open only with the owner's personal code (hash only, never the code) */
+const OWN_H='8b185f4a200d65dde53e6f214ddeb361d34a9c812505a398a0c81dcfc68f9917';
+async function ownHash(t){const d=new TextEncoder().encode('mrf-owner|'+t);const b=await crypto.subtle.digest('SHA-256',d);return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')}
+$('#ownBtn').onclick=async()=>{const m=$('#ownMsg'),v=toLatin($('#ownCode').value).trim().toLowerCase();
+  if(!v){m.className='fb bad';m.textContent='اكتبي رمزك الشخصي.';return}
+  let ok=false;try{ok=(await ownHash(v))===OWN_H}catch(e){}
+  if(!ok){m.className='fb bad';m.textContent='الرمز غير صحيح. هذا القسم خاص بمعلمة المادة.';$('#ownCode').value='';return}
+  $('#ownCode').value='';$('#ownLock').hidden=true;$('#ownPanel').hidden=false;renderPast()};
+$('#ownCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#ownBtn').click()}});
 $('#tOpenCode').addEventListener('input',e=>{e.target.value=toLatin(e.target.value).replace(/\D/g,'').slice(0,6)});
 $('#tOpenBtn').onclick=()=>{const c=toLatin($('#tOpenCode').value).replace(/\D/g,'');const m=$('#tMsg');
   if(c.length!==6||!/^[123]/.test(c)){m.className='fb bad';m.textContent='رمز الفصل ستة أرقام يبدأ بـ ١ أو ٢ أو ٣، تلقينه أعلى لوحة الآيباد.';return}
   teacherConnect(c,true)};
-function teacherConnect(code,view){
+const tkHash=(cd,k)=>h36('mrf|'+cd+'|'+k)+h36(k+'|road|'+cd);
+function showTK(){const k=store.get('mrf-tkey-'+TCH.code);if(true){$('#tkBox').hidden=true;return}$('#tkBox').hidden=false;$('#tKey').textContent='••••••';$('#tKeyBtn').textContent='إظهار';
+  $('#tKeyBtn').onclick=()=>{const on=$('#tKey').textContent!=='••••••';$('#tKey').textContent=on?'••••••':ar(k);$('#tKeyBtn').textContent=on?'إظهار':'إخفاء';clearTimeout(showTK.t);if(!on)showTK.t=setTimeout(()=>{$('#tKey').textContent='••••••';$('#tKeyBtn').textContent='إظهار'},15000)}}
+function teacherConnect(code,view,vkey){
   const msg=$('#tMsg');msg.className='fb info';msg.textContent='جارٍ تجهيز الفصل…';$('#newClassBtn').disabled=true;
   const order=code?[+code[0]-1]:[0,1,2];
   const fail=t=>{$('#newClassBtn').disabled=false;msg.className='fb bad';msg.textContent=t};
@@ -1489,6 +1511,16 @@ function teacherConnect(code,view){
     const bi=order[k];
     connectBroker(bi,c=>{
       const cd=code||String(bi+1)+String(ri(0,99999)).padStart(5,'0');
+      if(view&&vkey&&!c.__tkOk){
+        msg.textContent='جارٍ التأكد من رمز المعلمة…';let done=false;
+        const bad=t=>{if(done)return;done=true;try{c.end(true)}catch(e){}fail(t)};
+        const tm=setTimeout(()=>bad('ما قدرت أتأكد من الرمز. تأكدي إن لوحة الآيباد فُتحت مرة بعد آخر تحديث، وجرّبي مرة ثانية.'),4000);
+        c.on('message',(topic,payload)=>{if(done||topic!==T(cd,'tk'))return;clearTimeout(tm);
+          if(payload.toString()===tkHash(cd,vkey)){done=true;c.__tkOk=true;go()}else bad('رمز الفصل أو رمز المعلمة غير صحيح.')});
+        c.subscribe(T(cd,'tk'));return;
+      }
+      go();
+      function go(){
       if(!view)store.set('mrf-teacher-code',cd);TCH.view=!!view;
       TCH.client=c;TCH.code=cd;
       try{const s=JSON.parse(store.get('mrf-teacher-ctl-'+cd)||'{}');TCH.open=s.open||5;TCH.pause=!!s.pause;TCH.anon=!!s.anon;TCH.created=s.created||Date.now()}catch(e){TCH.created=Date.now()}
@@ -1506,7 +1538,10 @@ function teacherConnect(code,view){
       $('#tDot').className='dot on';
       $('#landing').hidden=true;$('#teacher').hidden=false;$('#tCode').textContent=ar(cd);
       $('#tStageWrap').appendChild($('#stage'));if(!booted){booted=true;boot3D()}
-      buildTeacherBar();if(!view)pubCtl();else{$('#endBtn').hidden=true;$('#archTag').hidden=false;$('#archTag').textContent='لوحة الفصل من جهاز ثاني'}renderTeacher();setInterval(renderTeacher,15000);
+      if(!view){let tk=store.get('mrf-tkey-'+cd);if(!tk||!/^\d{6}$/.test(tk)){tk=String(ri(0,999999)).padStart(6,'0');store.set('mrf-tkey-'+cd,tk)}
+        try{c.publish(T(cd,'tk'),tkHash(cd,tk),{retain:true,qos:1})}catch(e){}}
+      buildTeacherBar();if(!view)pubCtl();else{$('#endBtn').hidden=true;$('#archTag').hidden=false;$('#archTag').textContent='لوحة الفصل من جهاز ثاني'}showTK();renderTeacher();setInterval(renderTeacher,15000);
+      }
     },why=>why==='lib'?fail(LIB_MSG):tryAt(k+1));
   };
   tryAt(0);
@@ -1591,6 +1626,7 @@ function buildTeacherBar(){
     for(const sid of TCH.studs.keys()){try{TCH.client.publish(T(TCH.code,'s/'+sid),'',{retain:true,qos:1})}catch(e){}}
     for(const k of TCH.claims.keys()){try{TCH.client.publish(T(TCH.code,'claim/'+k),'',{retain:true,qos:1})}catch(e){}}
     try{TCH.client.publish(T(TCH.code,'ctl'),'',{retain:true,qos:1})}catch(e){}
+    try{TCH.client.publish(T(TCH.code,'tk'),'',{retain:true,qos:1})}catch(e){}store.del('mrf-tkey-'+TCH.code);
     store.del('mrf-teacher-code');store.del('mrf-teacher-ctl-'+TCH.code);
     setTimeout(()=>location.reload(),800);
   };

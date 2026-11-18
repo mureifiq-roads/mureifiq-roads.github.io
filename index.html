@@ -1105,6 +1105,7 @@ function setDot(on){const d=$('#netDot');d.className='dot '+(on?'on':'off')}
 function applyCtl(raw){
   const prevPh=CTL.ph;
   if(!raw){CTL={open:5,pause:false,ph:'pre',roster:[]}}else{try{const o=JSON.parse(raw);CTL={open:Math.min(5,Math.max(1,+o.open||5)),pause:!!o.pause,ph:o.ph==='post'?'post':'pre',roster:cleanRoster(o.roster)}}catch(e){return}}
+  if(CLASS_ROSTERS[NET.code]){CTL.open=5;CTL.pause=false}
   $('#pauseOv').hidden=!CTL.pause;
   if(prevPh!==CTL.ph&&!$('#done').hidden)renderDone();
   if(picking)renderPick();
@@ -1626,6 +1627,7 @@ function buildTeacherBar(){
     buildReport();saveMsg('info','في نافذة الطباعة: لحفظه PDF على الآيفون، كبّري معاينة الصفحة بإصبعين ثم اضغطي زر المشاركة ← حفظ في الملفات.');
     setTimeout(()=>window.print(),100);
   };
+  if(CLASS_ROSTERS[TCH.code]){['#pauseBtn','#openSeg','#endBtn'].forEach(q=>{const e=$(q);if(e)e.style.display='none'});TCH.pause=false;TCH.open=5}
   const eb=$('#endBtn');let armed=false,tm;
   eb.onclick=()=>{
     if(!armed){armed=true;eb.classList.add('arm');eb.textContent='اضغطي مرة ثانية: تُغلق الحصة وتُحفظ في «الحصص السابقة»';tm=setTimeout(()=>{armed=false;eb.classList.remove('arm');eb.textContent='إنهاء الحصة'},6000);return}

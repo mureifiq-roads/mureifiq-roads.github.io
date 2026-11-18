@@ -863,6 +863,9 @@ function getRosterLines(){
   return DEFAULT_LINES.slice();
 }
 function getRoster(){return getRosterLines().map(l=>parseLine(l).n)}
+/* Match a name to the roster even if spelled differently (ه/ة، أ/ا، ى/ي، full name vs first name) */
+const nrmName=x=>String(x).replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/\s+/g,' ').trim();
+function rosterMatch(n){const R=getRoster();if(R.includes(n))return n;const k=nrmName(n),f=k.split(' ')[0];let m=R.filter(x=>nrmName(x)===k);if(m.length===1)return m[0];m=R.filter(x=>nrmName(x).split(' ')[0]===f);return m.length===1?m[0]:n}
 function teamOf(name){const l=getRosterLines().find(x=>parseLine(x).n===name);return l?parseLine(l).t:-1}
 function setRoster(lines){store.set(ROS_KEY,JSON.stringify(cleanLines(lines)))}
 const nkey=n=>Array.from(new TextEncoder().encode(n)).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,120);
@@ -889,8 +892,8 @@ $('#joinForm').addEventListener('submit',e=>{
     });
     c.subscribe(T(code,'ctl'));c.subscribe(T(code,'claim/+'));
     c.on('connect',()=>{setDot(true);pub()});c.on('close',()=>setDot(false));c.on('offline',()=>setDot(false));
-    setDot(true);
-    setTimeout(toPick,2500);
+    setDot(true);msg.className='fb info';msg.textContent='جارٍ تحميل أسماء الفصل…';
+    setTimeout(toPick,8000);
   },why=>{
     $('#joinBtn').disabled=false;msg.className='fb bad';
     msg.textContent=why==='lib'?LIB_MSG:'تعذّر الوصول لخادم الفصل من هذه الشبكة. جرّبي بيانات الجوال، أو العبي بدون فصل.';
@@ -1540,7 +1543,7 @@ function teacherConnect(code,view,vkey){
       $('#tStageWrap').appendChild($('#stage'));if(!booted){booted=true;boot3D()}
       if(!view){let tk=store.get('mrf-tkey-'+cd);if(!tk||!/^\d{6}$/.test(tk)){tk=String(ri(0,999999)).padStart(6,'0');store.set('mrf-tkey-'+cd,tk)}
         try{c.publish(T(cd,'tk'),tkHash(cd,tk),{retain:true,qos:1})}catch(e){}}
-      buildTeacherBar();if(!view)pubCtl();else{$('#endBtn').hidden=true;$('#archTag').hidden=false;$('#archTag').textContent='لوحة الفصل من جهاز ثاني'}showTK();renderTeacher();setInterval(renderTeacher,15000);
+      buildTeacherBar();if(!view){pubCtl();setInterval(pubCtl,60000)}else{$('#endBtn').hidden=true;$('#archTag').hidden=false;$('#archTag').textContent='لوحة الفصل من جهاز ثاني'}showTK();renderTeacher();setInterval(renderTeacher,15000);
       }
     },why=>why==='lib'?fail(LIB_MSG):tryAt(k+1));
   };
@@ -1711,7 +1714,7 @@ function buildRows(){
   const now=Date.now(),by=new Map(),order=[];
   const add=n=>{if(!by.has(n)){by.set(n,{n,team:teamOf(n)});order.push(n)}return by.get(n)};
   getRoster().forEach(add);
-  for(const [sid,o] of TCH.studs){const r=add(o.n);if(!r.rec||o.t>r.rec.t){r.rec=o;r.sid=sid}}
+  for(const [sid,o] of TCH.studs){const r=add(rosterMatch(o.n));if(!r.rec||o.t>r.rec.t){r.rec=o;r.sid=sid}}
   for(const ph of ['pre','post'])for(const n of TCH.paper[ph].keys())add(n);
   return order.map(n=>{
     const r=by.get(n),o=r.rec;

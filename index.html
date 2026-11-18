@@ -302,8 +302,7 @@ select{background:#0f2843;border:1px solid var(--line);border-radius:10px;paddin
         <span class="concept">للطالبة</span>
         <h2 id="pickTitle">اختاري اسمك</h2>
         <div class="names" id="nameGrid"></div>
-        <label for="jName" id="nameLbl" hidden>اسمك الأول<input id="jName" maxlength="20" autocomplete="off"></label>
-        <button class="primary" id="pickBtn">ابدئي</button>
+                <button class="primary" id="pickBtn">ابدئي</button>
         <div class="fb" id="pMsg" role="status"></div>
       </div>
       <div class="card">
@@ -332,7 +331,7 @@ select{background:#0f2843;border:1px solid var(--line);border-radius:10px;paddin
         </div>
       </div>
     </div>
-    <p class="note">لا يحتاج أي حساب. الطالبة تكتب اسمها الأول فقط.</p>
+    <p class="note">لا يحتاج أي حساب. الطالبة تختار اسمها من قائمة الفصل.</p>
     <p class="note credit">© ١٤٤٨هـ · لعبة «مهندس الطرق في مريفق» من تصميم وإعداد أ. بدرية الشمري · رياضيات ثالث متوسط</p>
   </div>
 </div>
@@ -846,6 +845,10 @@ $('#jCode').addEventListener('input',e=>{e.target.value=toLatin(e.target.value).
 const ROS_KEY='mrf-roster';
 let ARCH_ROSTER=null;
 const DEFAULT_ROSTER=[];
+/* Class names built into the game: the list shows even when the teacher dashboard is closed */
+const CLASS_ROSTERS={'121682':['أفراح','غند','حنين','فاطمة','داليا','لطيفة','أبراج','ريم','شيخة','رغد','منيرة','أمل','نورة','مرام','منيفة','رهف']};
+function clsRoster(){return(CTL.roster&&CTL.roster.length)?CTL.roster:(CLASS_ROSTERS[NET.code]||[])}
+const nFirst=x=>nrmName(x).split(' ')[0];
 const cleanName=x=>String(x).replace(/\s+/g,' ').trim().slice(0,20);
 function cleanRoster(a){const out=[];(Array.isArray(a)?a:[]).forEach(x=>{if(typeof x!=='string')return;const n=cleanName(x);if(n&&!out.includes(n)&&out.length<60)out.push(n)});return out}
 const TEAMS=[{n:'الطرق',c:'#f3b23a',h:0xf3b23a},{n:'التعليم',c:'#3fa7d6',h:0x3fa7d6},{n:'المعايير',c:'#9b7bd8',h:0x9b7bd8},{n:'الخدمات',c:'#ef6b5b',h:0xef6b5b}];
@@ -893,7 +896,7 @@ $('#joinForm').addEventListener('submit',e=>{
     c.subscribe(T(code,'ctl'));c.subscribe(T(code,'claim/+'));
     c.on('connect',()=>{setDot(true);pub()});c.on('close',()=>setDot(false));c.on('offline',()=>setDot(false));
     setDot(true);msg.className='fb info';msg.textContent='جارٍ تحميل أسماء الفصل…';
-    setTimeout(toPick,8000);
+    setTimeout(toPick,CLASS_ROSTERS[code]?1500:8000);
   },why=>{
     $('#joinBtn').disabled=false;msg.className='fb bad';
     msg.textContent=why==='lib'?LIB_MSG:'تعذّر الوصول لخادم الفصل من هذه الشبكة. جرّبي بيانات الجوال، أو العبي بدون فصل.';
@@ -911,17 +914,18 @@ function showPick(){
 /* One phone = one name: a name this device already claimed in this class locks it */
 function lockedName(){const d=(NET.dev||'').slice(0,8);if(!d)return null;for(const cl of CLAIMS.values())if(cl.sid.slice(0,8)===d)return cl.n;return null}
 function renderPick(){
-  const ros=CTL.roster||[],grid=$('#nameGrid');grid.textContent='';
-  const lk=lockedName(),pm=$('#pMsg');
-  if(lk){if(pickSel&&pickSel!==lk)pickSel=null;if(!pm.textContent||pm.dataset.lock){pm.className='fb info';pm.dataset.lock='1';pm.textContent=`هذا الجوال مسجّل باسم ${lk}. إذا الاسم غلط، كلّمي المعلمة تفكّه.`}}
+  const ros=clsRoster(),grid=$('#nameGrid');grid.textContent='';
+  const lk=lockedName(),pm=$('#pMsg'),lkB=lk?(ros.includes(lk)?lk:(ros.find(x=>nFirst(x)===nFirst(lk))||lk)):null;
+  if(lk){if(pickSel&&pickSel!==lk)pickSel=null;if(!pm.textContent||pm.dataset.lock){pm.className='fb info';pm.dataset.lock='1';pm.textContent=`هذا الجوال مسجّل باسم ${lkB}. إذا الاسم غلط، كلّمي المعلمة تفكّه.`}}
   else if(pm.dataset.lock){pm.className='fb';pm.textContent='';delete pm.dataset.lock}
-  $('#nameLbl').hidden=ros.length>0;grid.hidden=!ros.length;
-  $('#pickTitle').textContent=ros.length?'اختاري اسمك':'اكتبي اسمك الأول';
+  grid.hidden=!ros.length;$('#pickBtn').hidden=!ros.length;
+  $('#pickTitle').textContent='اختاري اسمك';
+  if(!ros.length&&!lk){pm.className='fb info';pm.textContent='أسماء الفصل ما وصلت بعد. انتظري شوي، أو اطلبي من المعلمة تفتح لوحتها.'}else if(ros.length&&pm.textContent.startsWith('أسماء الفصل')){pm.className='fb';pm.textContent=''}
   ros.forEach(n=>{
-    const cl=CLAIMS.get(nkey(n)),mine=cl&&cl.sid===sidFor(n),taken=cl&&!mine;
+    const cl=CLAIMS.get(nkey(n)),mine=(cl&&cl.sid===sidFor(n))||(lk&&n===lkB),taken=cl&&!mine;
     const b=document.createElement('button');b.type='button';b.textContent=n;
     if(taken){b.disabled=true;const s=document.createElement('small');s.textContent='دخلت';b.appendChild(s);if(pickSel===n)pickSel=null}
-    else if(lk&&n!==lk){b.disabled=true}
+    else if(lk&&n!==lkB){b.disabled=true}
     else if(mine){const s=document.createElement('small');s.textContent='تكمل';b.appendChild(s)}
     b.setAttribute('aria-pressed',pickSel===n);
     b.onclick=()=>{pickSel=n;renderPick()};
@@ -929,12 +933,12 @@ function renderPick(){
   });
 }
 $('#pickBtn').onclick=()=>{
-  const m=$('#pMsg'),ros=CTL.roster||[];
+  const m=$('#pMsg'),ros=clsRoster();
   delete m.dataset.lock;
   let n;
-  if(!ros.length){n=cleanName($('#jName').value);if(!n){m.className='fb bad';m.textContent='اكتبي اسمك الأول.';return}}
-  else{if(!pickSel){m.className='fb bad';m.textContent='اضغطي على اسمك أولاً.';return}n=pickSel}
-  const lk=lockedName();
+  if(!ros.length){m.className='fb info';m.textContent='أسماء الفصل ما وصلت بعد. انتظري شوي، أو اطلبي من المعلمة تفتح لوحتها.';return}
+  {if(!pickSel){m.className='fb bad';m.textContent='اضغطي على اسمك أولاً.';return}n=pickSel}
+  const lk=lockedName();if(lk&&lk!==n&&nFirst(lk)===nFirst(n))n=lk;
   if(lk&&lk!==n){m.className='fb bad';m.textContent=`هذا الجوال مسجّل باسم ${lk}، وكل جوال يقبل اسم واحد بس. إذا الاسم غلط، كلّمي المعلمة تفكّه.`;return}
   const k=nkey(n),cl=CLAIMS.get(k);
   const sidN=sidFor(n);
